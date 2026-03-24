@@ -1,4 +1,4 @@
 streamlit
 python-pptx
-Pillow
 pymupdf
+Pillow
