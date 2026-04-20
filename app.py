@@ -12,12 +12,7 @@ from streamlit_sortables import sort_items
 # --- 1. SETTINGS & CONFIG ---
 st.set_page_config(page_title="LED Appendix Pro", layout="wide", page_icon="🚀")
 
-# Initialize Session State
-if 'selected_images' not in st.session_state: st.session_state.selected_images = set()
-if 'image_order' not in st.session_state: st.session_state.image_order = []
-if 'drive_files' not in st.session_state: st.session_state.drive_files = []
-
-# ดึงค่าจาก Secrets
+# ดึงค่าจาก Secrets ทันที
 secrets = st.secrets if hasattr(st, 'secrets') else {}
 API_KEY = secrets.get("GDRIVE_API_KEY", "")
 FOLDER_ID = secrets.get("GDRIVE_FOLDER_ID", "")
@@ -25,6 +20,7 @@ FOLDER_ID = secrets.get("GDRIVE_FOLDER_ID", "")
 # --- 2. HELPERS ---
 @st.cache_data(show_spinner=False, ttl=3600)
 def list_drive_images(api_key, folder_id):
+    """ฟังก์ชันดึงรายชื่อไฟล์ภาพจาก Google Drive"""
     all_files, page_token = [], None
     while True:
         params = {
@@ -58,67 +54,79 @@ def add_full_image_16_9(slide, image_bytes, prs):
         slide.shapes.add_picture(io.BytesIO(image_bytes), left, top, width=new_w, height=new_h)
     except: pass
 
-# --- 3. ⚡️ IMMEDIATE AUTO-LOAD (ย้ายขึ้นมาทำงานก่อน UI อื่นๆ) ---
+# --- 3. ⚡️ MANDATORY AUTO-LOAD (หัวใจสำคัญ: บังคับโหลดที่ต้นไฟล์) ---
+# เริ่มต้น Session State
+if 'drive_files' not in st.session_state:
+    st.session_state.drive_files = []
+if 'selected_images' not in st.session_state:
+    st.session_state.selected_images = set()
+if 'image_order' not in st.session_state:
+    st.session_state.image_order = []
+
+# ถ้ามี API Key แต่ยังไม่มีข้อมูลในเครื่อง ให้สั่งดึงทันที (ไม่ต้องรอปุ่ม)
 if API_KEY and FOLDER_ID and not st.session_state.drive_files:
-    with st.spinner("🚀 กำลังเชื่อมต่อฐานข้อมูลรูปภาพอัตโนมัติ..."):
+    with st.spinner("🚀 กำลังเชื่อมต่อ Google Drive ทันที..."):
         try:
             files = list_drive_images(API_KEY, FOLDER_ID)
             st.session_state.drive_files = [{**f, "api_key": API_KEY} for f in files]
+            # สั่ง Rerun หนึ่งครั้งเพื่อให้ข้อมูลกระจายไปทั่วแอป
+            st.rerun()
         except Exception as e:
-            st.error(f"โหลดข้อมูลไม่สำเร็จ: {e}")
+            st.error(f"การเชื่อมต่ออัตโนมัติล้มเหลว: {e}")
 
-# --- 4. UI: HEADER ---
+# --- 4. UI: HEADER & COVER SETTINGS ---
 st.title("🚀 LED Appendix Pro")
 
-# ส่วนตั้งค่าหน้าปก
 with st.expander("📝 ตั้งค่าข้อมูลหน้าปกและปกหลัง", expanded=False):
     col_c1, col_c2 = st.columns(2)
-    with col_c1: cover_title = st.text_input("หัวข้อโปรเจกต์", "PROPOSAL FOR DIGITAL LED")
-    with col_c2: cover_sub = st.text_input("ชื่อลูกค้า", "Presented to: Valued Customer")
+    with col_c1:
+        cover_title = st.text_input("หัวข้อโปรเจกต์", "PROPOSAL FOR DIGITAL LED")
+    with col_c2:
+        cover_sub = st.text_input("ชื่อลูกค้า", "Presented to: Valued Customer")
+    st.caption("💡 ระบบจะหาไฟล์ชื่อ 'CoverA' เป็นปกหน้า และ 'CoverB' เป็นปกหลังให้อัตโนมัติ")
 
-# --- 5. SIDEBAR (ปุ่มรีเฟรชเอาไว้ใช้ยามจำเป็นเท่านั้น) ---
+# --- 5. SIDEBAR ---
 with st.sidebar:
     st.subheader("⚙️ Settings")
-    if API_KEY and FOLDER_ID:
-        st.success("✅ เชื่อมต่ออัตโนมัติสำเร็จ")
-    else:
-        st.warning("⚠️ กรุณาตั้งค่า Secrets ใน Streamlit Cloud")
+    if st.session_state.drive_files:
+        st.success(f"✅ โหลดรูปมาแล้ว {len(st.session_state.drive_files)} รูป")
     
-    if st.button("🔄 ดึงข้อมูลรูปภาพใหม่ (Refresh)", use_container_width=True):
+    if st.button("🔄 บังคับดึงข้อมูลใหม่ (Refresh)", use_container_width=True):
         st.cache_data.clear()
-        files = list_drive_images(API_KEY, FOLDER_ID)
-        st.session_state.drive_files = [{**f, "api_key": API_KEY} for f in files]
+        st.session_state.drive_files = []
         st.rerun()
 
 # --- 6. MAIN CONTENT ---
 all_files = st.session_state.drive_files
 
-# ค้นหาไฟล์ Cover อัตโนมัติ (ทำทุกครั้งที่มีการรัน)
+if not all_files:
+    st.info("💡 กำลังดึงข้อมูล... หากนานเกินไป กรุณาตรวจสอบ API Key ใน Secrets")
+    st.stop()
+
+# หา Cover อัตโนมัติ
 cover_a = next((f for f in all_files if "COVERA" in f['name'].upper()), None)
 cover_b = next((f for f in all_files if "COVERB" in f['name'].upper()), None)
 
 tab1, tab2 = st.tabs(["📷 เลือกรูปภาพ", f"🔀 จัดเรียง & Export ({len(st.session_state.selected_images)})"])
 
+# --- TAB 1: เลือกรูป ---
 with tab1:
-    # ช่อง Search จะทำงานได้ทันทีเพราะ all_files ถูกดึงมารอไว้ที่หัวโปรแกรมแล้ว
-    search = st.text_input("🔍 ค้นหารหัสภาพ (เช่น DGT...)", placeholder="พิมพ์รหัสเพื่อค้นหา...").upper()
+    search = st.text_input("🔍 ค้นหารหัสภาพ (เช่น DGT...)", placeholder="พิมพ์รหัสที่นี่ รูปจะขึ้นทันที...").upper()
     
     # Logic: โชว์รูปที่ Search เจอ หรือ รูปที่เคยติ๊กเลือกไว้
     display_files = [f for f in all_files if (search and search in f["name"].upper()) or (f["id"] in st.session_state.selected_images)]
     
     if not display_files:
-        if not search:
-            st.info("💡 พิมพ์รหัสภาพด้านบนเพื่อค้นหารูป หรือรอสักครู่หากข้อมูลกำลังโหลด")
-        else:
-            st.warning("ไม่พบรหัสภาพที่ค้นหา")
+        st.info("💡 พิมพ์รหัสภาพเพื่อเริ่มเลือกรูปภาพ")
     else:
-        st.caption(f"พบข้อมูล {len(display_files)} รายการ")
         cols = st.columns(4)
         for idx, f in enumerate(display_files):
             with cols[idx % 4]:
                 with st.container(border=True):
+                    # Thumbnail จาก Google
                     t_url = f.get("thumbnailLink", "").replace("=s220", "=s400")
                     if t_url: st.image(t_url, use_container_width=True)
+                    
                     fid, fname = f["id"], f["name"]
                     is_sel = fid in st.session_state.selected_images
                     if st.checkbox(fname[:15], key=f"chk_{fid}", value=is_sel):
@@ -130,6 +138,7 @@ with tab1:
                             st.session_state.selected_images.discard(fid)
                             st.session_state.image_order = [x for x in st.session_state.image_order if x != fid]
 
+# --- TAB 2: จัดเรียง & Export ---
 with tab2:
     current_order = [fid for fid in st.session_state.image_order if fid in st.session_state.selected_images]
     if not current_order:
@@ -138,11 +147,11 @@ with tab2:
         st.subheader("🖱️ คลิกลากเพื่อเรียงลำดับสไลด์")
         id_to_name = {f['id']: f['name'] for f in all_files}
         
-        # จัดการเรื่องข้อมูล String สำหรับตัวลากวาง (Fix ValueError)
+        # ปรับรูปแบบ String เพื่อกัน Error ValueError (list[str])
         sort_input = [f"{id_to_name.get(fid, 'Unknown')} | {fid}" for fid in current_order]
-        sorted_output = sort_items(sort_input, direction="vertical", key="drag_and_drop_final")
+        sorted_output = sort_items(sort_input, direction="vertical", key="sort_v4_stable")
         
-        # อัปเดตลำดับใหม่
+        # ดึง ID กลับมา
         new_order = [item.split(" | ")[-1] for item in sorted_output]
         st.session_state.image_order = new_order
 
@@ -166,9 +175,8 @@ with tab2:
             p2.text, p2.alignment, p2.font.size = cover_sub, PP_ALIGN.CENTER, Pt(26)
             if cover_a: p2.font.color.rgb = RGBColor(255, 255, 255)
 
-            # --- 2. สไลด์เนื้อหา ---
+            # --- 2. รูปเนื้อหา ---
             for fid in new_order:
-                # ไม่เอาปกมาซ้ำในเนื้อหา
                 if (cover_a and fid == cover_a['id']) or (cover_b and fid == cover_b['id']): continue
                 add_full_image_16_9(prs.slides.add_slide(prs.slide_layouts[6]), download_drive_image(fid, API_KEY), prs)
 
@@ -179,4 +187,4 @@ with tab2:
             ppt_out = io.BytesIO()
             prs.save(ppt_out)
             st.success("🎉 สร้างไฟล์สำเร็จ!")
-            st.download_button("📥 ดาวน์โหลด Appendix", ppt_out.getvalue(), "Appendix.pptx", use_container_width=True)
+            st.download_button("📥 ดาวน์โหลด Appendix", ppt_out.getvalue(), "Appendix_16_9.pptx", use_container_width=True)
