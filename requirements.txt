@@ -3,3 +3,4 @@ python-pptx
 pymupdf
 Pillow
 requests
+streamlit-sortables
