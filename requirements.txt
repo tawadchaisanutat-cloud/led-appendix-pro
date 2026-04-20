@@ -2,3 +2,4 @@ streamlit
 python-pptx
 pymupdf
 Pillow
+requests
