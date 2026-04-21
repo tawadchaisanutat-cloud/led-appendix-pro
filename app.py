@@ -8,7 +8,115 @@ import requests
 from PIL import Image
 
 # --- 1. CONFIG & SECRETS ---
-st.set_page_config(page_title="LED Appendix Pro", layout="wide", page_icon="🚀")
+st.set_page_config(page_title="Plan B Media — LED Appendix Pro", layout="wide", page_icon="🎯")
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1B2A72 0%, #0D1B3E 100%) !important;
+    border-right: 1px solid #00AEEF50;
+}
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] div { color: #FFFFFF !important; }
+[data-testid="stSidebar"] hr { border-color: #00AEEF30 !important; }
+
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(160deg, #0D1B3E 0%, #0F2350 100%) !important;
+}
+[data-testid="stHeader"] { background: transparent !important; }
+
+.planb-logo {
+    padding: 24px 16px 18px;
+    border-bottom: 2px solid #00AEEF;
+    margin-bottom: 4px;
+    text-align: center;
+}
+.planb-logo .brand {
+    font-size: 28px; font-weight: 800; color: #fff;
+    letter-spacing: -1px; line-height: 1;
+}
+.planb-logo .brand span { color: #00AEEF; }
+.planb-logo .sub {
+    font-size: 11px; color: #00AEEF;
+    letter-spacing: 5px; text-transform: uppercase; margin-top: 3px;
+}
+.planb-logo .app-tag {
+    display: inline-block; margin-top: 12px;
+    background: #00AEEF20; border: 1px solid #00AEEF50;
+    border-radius: 20px; padding: 3px 12px;
+    font-size: 10px; color: #00AEEF; letter-spacing: 2px;
+}
+
+h1 {
+    background: linear-gradient(90deg, #00AEEF 0%, #FFFFFF 60%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; font-weight: 800 !important;
+}
+h2, h3 { color: #00AEEF !important; }
+
+.stButton > button {
+    border-radius: 8px !important; font-weight: 600 !important;
+    border: 1px solid #00AEEF40 !important;
+    transition: all 0.2s ease !important;
+    color: #fff !important;
+}
+.stButton > button:hover {
+    border-color: #00AEEF !important;
+    box-shadow: 0 0 14px #00AEEF40 !important;
+    transform: translateY(-1px) !important;
+}
+[data-testid="baseButton-primary"] {
+    background: linear-gradient(135deg, #00AEEF, #0070A8) !important;
+}
+
+.stTextInput > div > div > input {
+    background: #1B2A7250 !important;
+    border: 1px solid #00AEEF40 !important;
+    border-radius: 8px !important; color: white !important;
+}
+.stTextInput > div > div > input:focus {
+    border-color: #00AEEF !important;
+    box-shadow: 0 0 0 2px #00AEEF30 !important;
+}
+
+[data-testid="stMetric"] {
+    background: #1B2A7260 !important;
+    border: 1px solid #00AEEF30 !important;
+    border-radius: 10px !important; padding: 10px !important;
+}
+[data-testid="stMetricValue"] { color: #00AEEF !important; font-weight: 800 !important; }
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border: 1px solid #00AEEF20 !important;
+    border-radius: 10px !important;
+    background: #1B2A7215 !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: #00AEEF70 !important;
+    box-shadow: 0 0 12px #00AEEF20 !important;
+}
+
+[data-testid="stTabs"] [role="tab"] { font-weight: 600 !important; color: #ffffff80 !important; }
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: #00AEEF !important; border-bottom-color: #00AEEF !important;
+}
+
+[data-testid="stAlert"] { border-radius: 10px !important; border-left-width: 4px !important; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0D1B3E; }
+::-webkit-scrollbar-thumb { background: #00AEEF50; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00AEEF; }
+
+hr { border-color: #00AEEF20 !important; }
+</style>
+""", unsafe_allow_html=True)
 
 secrets = st.secrets if hasattr(st, 'secrets') else {}
 API_KEY = secrets.get("GDRIVE_API_KEY", "")
@@ -83,7 +191,14 @@ def remove_item(fid):
     st.session_state.image_order = [x for x in st.session_state.image_order if x != fid]
 
 # --- 6. UI CONTENT ---
-st.title("🚀 LED Appendix Pro")
+st.markdown("""
+<div style="padding:8px 0 20px">
+    <h1 style="margin:0;font-size:2.2rem">LED Appendix Pro</h1>
+    <p style="color:#00AEEF90;margin:4px 0 0;font-size:.85rem;letter-spacing:2px;text-transform:uppercase">
+        Plan B Media · Digital LED Proposal Builder
+    </p>
+</div>
+""", unsafe_allow_html=True)
 all_files = st.session_state.drive_files
 
 if not all_files:
@@ -193,6 +308,13 @@ with tab2:
 
 # --- 7. SIDEBAR ---
 with st.sidebar:
+    st.markdown("""
+    <div class="planb-logo">
+        <div class="brand">Plan<span>·B</span></div>
+        <div class="sub">media</div>
+        <div class="app-tag">⚡ LED APPENDIX PRO</div>
+    </div>
+    """, unsafe_allow_html=True)
     st.subheader("📊 ข้อมูลปัจจุบัน")
     st.write(f"🖼️ ปกหน้า (COVER A): {'✅ พบแล้ว' if cover_a else '❌ ไม่พบ'}")
     st.write(f"🖼️ ปกหลัง (COVER B): {'✅ พบแล้ว' if cover_b else '❌ ไม่พบ'}")
